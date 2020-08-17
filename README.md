@@ -1,5 +1,4 @@
-# This is exceptionally confusion, but this folder actually has the best 
-# version of the ward code.
+# Temporal analysis of urban venues. Currently configured for London, UK.
 
 
 london_wards_inflow.html is the file that'll show the trends in inflow over the
