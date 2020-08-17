@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title></title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.35.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.35.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+
+        .map-overlay {
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            position: absolute;
+            width: 25%;
+            top: 0;
+            left: 0;
+            padding: 10px;
+        }
+
+        .map-overlay .map-overlay-inner {
+            background-color: #fff;
+            box-shadow:0 1px 2px rgba(0, 0, 0, 0.20);
+            border-radius: 3px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .map-overlay h2 {
+            line-height: 24px;
+            display: block;
+            margin: 0 0 10px;
+        }
+
+        .map-overlay .legend .bar {
+            height: 10px;
+            width: 100%;
+            background: linear-gradient(to right, green, yellow, red);
+        }
+
+        .map-overlay input {
+            background-color: transparent;
+            display: inline-block;
+            width: 100%;
+            position: relative;
+            margin: 0;
+            cursor: ew-resize;
+        }
+    </style>
+</head>
+
+<body>
+<style>
+.mapboxgl-popup {
+    max-width: 400px;
+    font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+}
+</style>
+<div id='map'></div>
+
+
+<div class='map-overlay top'>
+    <div class='map-overlay-inner'>
+        <h2># of checkins</h2>
+        <label id='month'></label>
+        <input id='slider' type='range' min='0' max='24' step='1' value='0' />
+    </div>
+    <div class='map-overlay-inner'>
+        <div id='legend' class='legend'>
+            <div class='bar'></div>
+            <div>Number of checkins</div>
+        </div>
+    </div>
+</div>
+
+
+<script src='http://d3js.org/d3.v3.min.js' charset='utf-8'></script>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1Ijoia3JpdHRzIiwiYSI6ImNpeWc1aHJvbjAwMmMzMm9pbmhwbmhoa2QifQ.c-pkNZYsmkDJzpLJXxU4HA';
+var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/light-v9',
+    center: [0, 51.5],
+    zoom: 10.0
+});
+
+var months = [
+    '0',
+    '1',
+    '2',
+    '4',
+    '3',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10',
+    '11',
+    '12',
+    '13',
+    '14',
+    '15',
+    '16',
+    '17',
+    '18',
+    '19',
+    '20',
+    '21',
+    '22',
+    '23',
+    '24'
+];
+
+function filterBy(month) {
+    var filters = ['==', 'month', month];
+    map.setFilter('states-layer', filters);
+
+    // Set the label to the month
+    document.getElementById('month').textContent = "Time of day: " +  months[month];
+}
+
+
+mapboxgl.accessToken = 'pk.eyJ1Ijoia3JpdHRzIiwiYSI6ImNpeWc1aHJvbjAwMmMzMm9pbmhwbmhoa2QifQ.c-pkNZYsmkDJzpLJXxU4HA';
+var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v9',
+    center: [0, 51.5],
+    zoom: 10.0
+});
+
+map.on('load', function () {
+
+  d3.json('./london_wards_inflow.geojson', function(err, data) {
+    if (err) throw err;
+
+  // Create a month property value based on time
+  // used to filter against.
+  data.features = data.features.map(function(d) {
+    d.properties.month = d.properties.time 
+      return d;
+  });
+
+  map.addSource('earthquakes', {
+    'type': 'geojson',
+    'data': data
+  });
+
+  // Add a layer showing the state polygons.
+  map.addLayer({
+      'id': 'states-layer',
+      'type': 'fill',
+      'source': 'earthquakes',
+      'paint': {
+        'fill-color': {
+          property: 'mag',
+            stops: [
+              [10, 'green'],
+              [50, 'yellow'],
+              [100, 'red']
+            ]
+          },
+          'fill-opacity': 0.75,
+          'fill-outline-color': 'rgba(200, 100, 240, 1)'
+      }
+  });
+
+  // Set filter to first month of the year
+  filterBy(0);
+
+  document.getElementById('slider').addEventListener('input', function(e) {
+      var month = parseInt(e.target.value, 10);
+      filterBy(month);
+  });
+  });
+
+  // When a click event occurs on a feature in the states layer, open a popup at the
+  // location of the click, with description HTML from its properties.
+  map.on('click', 'states-layer', function (e) {
+    new mapboxgl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(e.features[0].properties.name)
+      .addTo(map);
+  });
+
+  // Change the cursor to a pointer when the mouse is over the states layer.
+  map.on('mouseenter', 'states-layer', function () {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+
+  // Change it back to a pointer when it leaves.
+  map.on('mouseleave', 'states-layer', function () {
+    map.getCanvas().style.cursor = '';
+  });
+
+
+});
+</script>
+</body>
+</html>
+
